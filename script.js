@@ -1,19 +1,32 @@
 // ===== 質問データ =====
 // axis: どの指標の質問か
 // key : +1 = 左側の文字（I / N / T / P）寄りの質問、-1 = 逆転項目
+// 各指標5問（通常3問＋逆転2問）、指標が偏らないよう順番に並べている
 const QUESTIONS = [
   { text: "休日は一人で過ごすほうが落ち着く。", axis: "IE", key: 1 },
-  { text: "大人数の集まりのあとは、一人の時間で回復したくなる。", axis: "IE", key: 1 },
-  { text: "初対面の人にも自分から話しかけるほうだ。", axis: "IE", key: -1 },
   { text: "細かい事実より、その裏にある意味や可能性が気になる。", axis: "NS", key: 1 },
-  { text: "「もし〜だったら」と想像をふくらませるのが好きだ。", axis: "NS", key: 1 },
-  { text: "新しいやり方より、実績のある確実な方法を選ぶ。", axis: "NS", key: -1 },
   { text: "何かを決めるときは、気持ちより筋が通っているかを重視する。", axis: "TF", key: 1 },
-  { text: "友人に相談されたら、共感より解決策を伝えたくなる。", axis: "TF", key: 1 },
-  { text: "正しいことでも、相手が傷つくなら言うのをためらう。", axis: "TF", key: -1 },
   { text: "予定は直前まで決めず、その場の流れで動きたい。", axis: "PJ", key: 1 },
-  { text: "課題は締め切り間際にまとめて取りかかることが多い。", axis: "PJ", key: 1 },
+
+  { text: "初対面の人にも自分から話しかけるほうだ。", axis: "IE", key: -1 },
+  { text: "新しいやり方より、実績のある確実な方法を選ぶ。", axis: "NS", key: -1 },
+  { text: "正しいことでも、相手が傷つくなら言うのをためらう。", axis: "TF", key: -1 },
   { text: "旅行では事前に細かく計画を立てる。", axis: "PJ", key: -1 },
+
+  { text: "大人数の集まりのあとは、一人の時間で回復したくなる。", axis: "IE", key: 1 },
+  { text: "「もし〜だったら」と想像をふくらませるのが好きだ。", axis: "NS", key: 1 },
+  { text: "友人に相談されたら、共感より解決策を伝えたくなる。", axis: "TF", key: 1 },
+  { text: "課題は締め切り間際にまとめて取りかかることが多い。", axis: "PJ", key: 1 },
+
+  { text: "人と話しているうちに、考えがまとまっていくほうだ。", axis: "IE", key: -1 },
+  { text: "抽象的な話より、具体例を聞くほうが分かりやすい。", axis: "NS", key: -1 },
+  { text: "決断するときは、関わる人がどう感じるかを一番に考える。", axis: "TF", key: -1 },
+  { text: "物事は早めに終わらせておかないと落ち着かない。", axis: "PJ", key: -1 },
+
+  { text: "話す前に、頭の中で考えを整理してから話したい。", axis: "IE", key: 1 },
+  { text: "ひらめきや直感でアイデアを思いつくことが多い。", axis: "NS", key: 1 },
+  { text: "議論では、相手と意見が違ってもはっきり伝える。", axis: "TF", key: 1 },
+  { text: "やることリストを作っても、その通りに進めることは少ない。", axis: "PJ", key: 1 },
 ];
 
 // 各指標の名前と説明
@@ -39,7 +52,7 @@ const SCALE_LABELS = ["全くそう思わない", "あまりそう思わない",
 
 // ===== 計算 =====
 // 回答（1〜5）→ −2〜+2 に変換し、逆転項目は符号を反転
-// 指標ごとに合計（−6〜+6）→ 左側の文字の割合 = (合計 + 6) / 12
+// 指標ごとに合計（5問なら−10〜+10）→ 左側の文字の割合 = (合計 + 10) / 20
 function calcAxes(answers) {
   const result = {};
   for (const axis of AXES) {
@@ -111,8 +124,32 @@ function buildQuiz() {
 function renderResult() {
   const axisRatio = calcAxes(answers);
   const types = calcTypes(axisRatio);
-  const top = types.slice(0, 3);
-  const otherP = 1 - top.reduce((s, t) => s + t.p, 0);
+  // 上位タイプを合計70%以上になるまで表示（最低2つ・最大5つ、同率は途中で切らない）
+  const EPS = 1e-9;
+  const top = [];
+  let cum = 0;
+  for (const t of types) {
+    const last = top[top.length - 1];
+    const tiedWithLast = last && Math.abs(last.p - t.p) < EPS;
+    if (top.length >= 2 && (cum >= 0.7 || top.length >= 5) && !tiedWithLast) break;
+    if (t.p < EPS || top.length >= 6) break;
+    top.push(t);
+    cum += t.p;
+  }
+  const otherP = Math.max(0, 1 - cum);
+
+  // 1位が同率かどうかで文章を変える
+  const lead = top.filter((t) => Math.abs(t.p - top[0].p) < EPS);
+  const rest = top.slice(lead.length);
+  const strong = (t) => `<strong>${t.code}</strong>`;
+  const leadText = lead.length >= 4
+    ? `特定のタイプに偏らない、バランスの取れた結果です`
+    : lead.length === 1
+    ? `あなたは ${strong(lead[0])} の傾向が最も強く（${pct(lead[0].p)}%）`
+    : `あなたは ${lead.map(strong).join(" と ")} の傾向が同じくらい強く（各${pct(lead[0].p)}%）`;
+  const restText = rest.length && lead.length < 4
+    ? `、次いで ${rest.map((t) => `${strong(t)}（${pct(t.p)}%）`).join("、")} の要素も持っています。`
+    : "。";
 
   // ① 割合表示（本研究で提案する表示）
   $("view-mix").innerHTML = `
@@ -122,15 +159,12 @@ function renderResult() {
           <div class="mix-head"><span class="code">${t.code}</span><span>${pct(t.p)}%</span></div>
           <div class="bar"><div style="width:${pct(t.p)}%"></div></div>
         </div>`).join("")}
+      ${otherP >= 0.005 ? `
       <div class="mix-row other">
         <div class="mix-head"><span>その他</span><span>${pct(otherP)}%</span></div>
         <div class="bar"><div style="width:${pct(otherP)}%"></div></div>
-      </div>
-      <p class="summary">
-        あなたは <strong>${top[0].code}</strong> の傾向が最も強く（${pct(top[0].p)}%）、
-        次いで <strong>${top[1].code}</strong>（${pct(top[1].p)}%）、
-        <strong>${top[2].code}</strong>（${pct(top[2].p)}%）の要素も持っています。
-      </p>
+      </div>` : ""}
+      <p class="summary">${leadText}${restText}</p>
       <details>
         <summary>16タイプすべての割合を見る</summary>
         <table>${types.map((t) => `<tr><td>${t.code}</td><td>${(t.p * 100).toFixed(1)}%</td></tr>`).join("")}</table>
