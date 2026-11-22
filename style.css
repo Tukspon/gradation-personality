@@ -1,0 +1,116 @@
+:root {
+  --bg: #f6f5f2;
+  --card: #ffffff;
+  --text: #22252b;
+  --muted: #6b7079;
+  --line: #e3e1dc;
+  --accent: #3f6fd8;
+  --accent-soft: #e4ecfb;
+  --accent2: #e0814a;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c;
+    --card: #1f2227;
+    --text: #eceef1;
+    --muted: #9aa0aa;
+    --line: #30343b;
+    --accent: #7ea2f2;
+    --accent-soft: #263451;
+    --accent2: #f0a06f;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  line-height: 1.7;
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+.eyebrow { color: var(--accent); font-weight: 700; font-size: .85rem; margin: 0 0 4px; letter-spacing: .05em; }
+h1 { font-size: 1.8rem; margin: 0 0 16px; }
+.lead { font-size: 1.05rem; }
+.facts { padding-left: 1.2em; color: var(--muted); margin: 20px 0 28px; }
+
+.btn {
+  display: block; width: 100%;
+  padding: 14px; margin-top: 16px;
+  font-size: 1rem; font-weight: 700;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card); color: var(--text);
+  cursor: pointer;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* 進捗 */
+.progress { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.progress-text { text-align: right; color: var(--muted); font-size: .85rem; margin: 4px 0 16px; }
+
+/* 質問 */
+.q {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 18px 16px; margin-bottom: 12px;
+}
+.q p { margin: 0 0 14px; font-weight: 600; }
+.scale { display: flex; justify-content: space-between; gap: 6px; }
+.scale label { flex: 1; text-align: center; cursor: pointer; }
+.scale input { position: absolute; opacity: 0; }
+.scale span.dot {
+  display: block; margin: 0 auto;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid var(--line); transition: .15s;
+}
+.scale label:nth-child(1) .dot, .scale label:nth-child(5) .dot { width: 40px; height: 40px; }
+.scale input:checked + .dot { background: var(--accent); border-color: var(--accent); }
+.scale input:focus-visible + .dot { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scale-labels { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-top: 6px; }
+
+/* タブ */
+.tabs { display: flex; gap: 6px; margin: 8px 0 20px; }
+.tab {
+  flex: 1; padding: 10px 4px; font-size: .85rem; font-weight: 700;
+  border: 1px solid var(--line); border-radius: 99px;
+  background: var(--card); color: var(--muted); cursor: pointer;
+}
+.tab.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.view { display: none; }
+.view.active { display: block; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 16px; margin-bottom: 12px; }
+
+/* 割合表示 */
+.mix-row { margin-bottom: 14px; }
+.mix-head { display: flex; justify-content: space-between; font-weight: 700; }
+.mix-head .code { font-size: 1.2rem; letter-spacing: .05em; }
+.bar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 4px; }
+.bar > div { height: 100%; background: var(--accent); border-radius: 99px; }
+.mix-row.other .bar > div { background: var(--muted); }
+.summary { margin-top: 8px; }
+details { margin-top: 8px; color: var(--muted); font-size: .9rem; }
+details table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+details td { padding: 4px 0; border-bottom: 1px solid var(--line); }
+details td:last-child { text-align: right; }
+
+/* 1タイプ表示 */
+.big-code { font-size: 3.4rem; font-weight: 800; letter-spacing: .08em; text-align: center; color: var(--accent); margin: 8px 0; }
+.traits { padding-left: 1.2em; }
+
+/* 指標表示 */
+.axis { margin-bottom: 18px; }
+.axis-labels { display: flex; justify-content: space-between; font-size: .9rem; font-weight: 700; }
+.axis-bar { display: flex; height: 14px; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+.axis-bar .l { background: var(--accent); }
+.axis-bar .r { background: var(--accent2); }
+
+.note { margin-top: 40px; font-size: .75rem; color: var(--muted); }

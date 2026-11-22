@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>グラデーション性格診断</title>
+  <meta name="description" content="性格を1タイプに決めつけず、複数タイプの割合で示す性格診断">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+
+    <!-- スタート画面 -->
+    <section id="start" class="screen active">
+      <p class="eyebrow">ゼミ研究プロトタイプ</p>
+      <h1>グラデーション性格診断</h1>
+      <p class="lead">
+        「あなたは○○タイプ」と1つに決めつけず、<br>
+        <strong>複数のタイプにどれくらい当てはまるか</strong>を割合で示す診断です。
+      </p>
+      <ul class="facts">
+        <li>質問は12問・所要時間は約2分</li>
+        <li>5段階で直感的に答えてください</li>
+        <li>回答はこの端末の中だけで計算され、送信されません</li>
+      </ul>
+      <button class="btn primary" id="startBtn">診断をはじめる</button>
+    </section>
+
+    <!-- 質問画面 -->
+    <section id="quiz" class="screen">
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+      <p class="progress-text" id="progressText">0 / 12</p>
+      <form id="quizForm"></form>
+      <button class="btn primary" id="resultBtn" disabled>結果を見る</button>
+    </section>
+
+    <!-- 結果画面 -->
+    <section id="result" class="screen">
+      <p class="eyebrow">診断結果</p>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-view="mix" role="tab">割合表示</button>
+        <button class="tab" data-view="single" role="tab">1タイプ表示</button>
+        <button class="tab" data-view="axis" role="tab">指標の%表示</button>
+      </div>
+
+      <div class="view active" id="view-mix"></div>
+      <div class="view" id="view-single"></div>
+      <div class="view" id="view-axis"></div>
+
+      <button class="btn" id="retryBtn">もう一度診断する</button>
+    </section>
+
+    <footer class="note">
+      本診断はゼミ研究のための試作品であり、心理学的に妥当性が検証された検査ではありません。<br>
+      MBTIは The Myers-Briggs Company の登録商標です。本診断はMBTI・16Personalitiesとは無関係です。
+    </footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
