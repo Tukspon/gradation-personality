@@ -29,9 +29,12 @@
     <!-- 質問画面 -->
     <section id="quiz" class="screen">
       <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
-      <p class="progress-text" id="progressText">0 / 20</p>
+      <p class="progress-text" id="progressText">1 / 4 ページ</p>
       <form id="quizForm"></form>
-      <button class="btn primary" id="resultBtn" disabled>結果を見る</button>
+      <div class="nav">
+        <button class="btn" id="prevBtn" type="button">戻る</button>
+        <button class="btn primary" id="nextBtn" type="button" disabled>次へ</button>
+      </div>
     </section>
 
     <!-- 結果画面 -->

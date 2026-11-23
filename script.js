@@ -8,7 +8,7 @@ const QUESTIONS = [
   { text: "何かを決めるときは、気持ちより筋が通っているかを重視する。", axis: "TF", key: 1 },
   { text: "予定は直前まで決めず、その場の流れで動きたい。", axis: "PJ", key: 1 },
 
-  { text: "初対面の人にも自分から話しかけるほうだ。", axis: "IE", key: -1 },
+  { text: "大勢でにぎやかに過ごすと、元気が湧いてくる。", axis: "IE", key: -1 },
   { text: "新しいやり方より、実績のある確実な方法を選ぶ。", axis: "NS", key: -1 },
   { text: "正しいことでも、相手が傷つくなら言うのをためらう。", axis: "TF", key: -1 },
   { text: "旅行では事前に細かく計画を立てる。", axis: "PJ", key: -1 },
@@ -16,7 +16,7 @@ const QUESTIONS = [
   { text: "大人数の集まりのあとは、一人の時間で回復したくなる。", axis: "IE", key: 1 },
   { text: "「もし〜だったら」と想像をふくらませるのが好きだ。", axis: "NS", key: 1 },
   { text: "友人に相談されたら、共感より解決策を伝えたくなる。", axis: "TF", key: 1 },
-  { text: "課題は締め切り間際にまとめて取りかかることが多い。", axis: "PJ", key: 1 },
+  { text: "予定をきっちり決めすぎると、窮屈に感じる。", axis: "PJ", key: 1 },
 
   { text: "人と話しているうちに、考えがまとまっていくほうだ。", axis: "IE", key: -1 },
   { text: "抽象的な話より、具体例を聞くほうが分かりやすい。", axis: "NS", key: -1 },
@@ -26,7 +26,7 @@ const QUESTIONS = [
   { text: "話す前に、頭の中で考えを整理してから話したい。", axis: "IE", key: 1 },
   { text: "ひらめきや直感でアイデアを思いつくことが多い。", axis: "NS", key: 1 },
   { text: "議論では、相手と意見が違ってもはっきり伝える。", axis: "TF", key: 1 },
-  { text: "やることリストを作っても、その通りに進めることは少ない。", axis: "PJ", key: 1 },
+  { text: "途中で予定が変わっても、むしろ楽しめるほうだ。", axis: "PJ", key: 1 },
 ];
 
 // 各指標の名前と説明
@@ -113,6 +113,9 @@ const pct = (x) => Math.round(x * 100);
 // ===== 画面操作 =====
 const $ = (id) => document.getElementById(id);
 const answers = new Array(QUESTIONS.length).fill(null);
+const PER_PAGE = 5;
+const PAGES = Math.ceil(QUESTIONS.length / PER_PAGE);
+let page = 0;
 
 function show(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
@@ -123,7 +126,7 @@ function show(id) {
 function buildQuiz() {
   const form = $("quizForm");
   form.innerHTML = QUESTIONS.map((q, i) => `
-    <div class="q">
+    <div class="q" data-page="${Math.floor(i / PER_PAGE)}">
       <p>Q${i + 1}. ${q.text}</p>
       <div class="scale">
         ${[1, 2, 3, 4, 5].map((v) => `
@@ -138,15 +141,44 @@ function buildQuiz() {
   form.addEventListener("change", (e) => {
     const i = Number(e.target.name.slice(1));
     answers[i] = Number(e.target.value);
-    const done = answers.filter((a) => a !== null).length;
-    $("progressBar").style.width = `${(done / QUESTIONS.length) * 100}%`;
-    $("progressText").textContent = `${done} / ${QUESTIONS.length}`;
-    $("resultBtn").disabled = done < QUESTIONS.length;
+    updateQuiz();
 
-    // 次の質問へ自動スクロール
-    const next = form.querySelectorAll(".q")[i + 1];
-    if (next && answers[i + 1] === null) next.scrollIntoView({ behavior: "smooth", block: "center" });
+    // ページ内の次の未回答へ自動スクロール。全部答えたらボタンへ
+    const { start, end } = pageRange();
+    const nextIdx = answers.slice(start, end).findIndex((a) => a === null);
+    if (nextIdx >= 0) {
+      form.querySelectorAll(".q")[start + nextIdx].scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      $("nextBtn").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   });
+}
+
+// ===== ページ分け（5問ずつ） =====
+function pageRange() {
+  const start = page * PER_PAGE;
+  return { start, end: Math.min(start + PER_PAGE, QUESTIONS.length) };
+}
+
+function updateQuiz() {
+  document.querySelectorAll(".q").forEach((el) => { el.hidden = Number(el.dataset.page) !== page; });
+
+  const done = answers.filter((a) => a !== null).length;
+  $("progressBar").style.width = `${(done / QUESTIONS.length) * 100}%`;
+  $("progressText").textContent = `${page + 1} / ${PAGES} ページ`;
+
+  const { start, end } = pageRange();
+  const left = answers.slice(start, end).filter((a) => a === null).length;
+  const isLast = page === PAGES - 1;
+  $("nextBtn").disabled = left > 0;
+  $("nextBtn").textContent = left > 0 ? `あと${left}問` : isLast ? "結果を見る" : "次へ";
+  $("prevBtn").style.visibility = page === 0 ? "hidden" : "visible";
+}
+
+function goPage(p) {
+  page = p;
+  updateQuiz();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function renderResult() {
@@ -289,16 +321,19 @@ function setView(name) {
 }
 
 // ===== イベント =====
-$("startBtn").addEventListener("click", () => show("quiz"));
-$("resultBtn").addEventListener("click", renderResult);
+$("startBtn").addEventListener("click", () => { goPage(0); show("quiz"); });
+$("nextBtn").addEventListener("click", () => {
+  if (page < PAGES - 1) goPage(page + 1);
+  else renderResult();
+});
+$("prevBtn").addEventListener("click", () => { if (page > 0) goPage(page - 1); });
 $("retryBtn").addEventListener("click", () => {
   answers.fill(null);
   $("quizForm").reset();
-  $("progressBar").style.width = "0";
-  $("progressText").textContent = `0 / ${QUESTIONS.length}`;
-  $("resultBtn").disabled = true;
+  goPage(0);
   show("quiz");
 });
 document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => setView(t.dataset.view)));
 
 buildQuiz();
+updateQuiz();
