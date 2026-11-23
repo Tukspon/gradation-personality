@@ -197,6 +197,9 @@ function renderResult() {
     cum += t.p;
   }
   const otherP = Math.max(0, 1 - cum);
+  // 表示する数字の合計が必ず100%になるよう、「その他」は残りで出す
+  const otherPct = 100 - top.reduce((s, t) => s + pct(t.p), 0);
+  const showOther = otherP >= 0.005 && otherPct > 0;
 
   // 1位が同率かどうかで文章を変える
   const lead = top.filter((t) => Math.abs(t.p - top[0].p) < EPS);
@@ -219,10 +222,10 @@ function renderResult() {
           <div class="mix-head"><span class="code">${t.code}</span><span>${pct(t.p)}%</span></div>
           <div class="bar"><div style="width:${pct(t.p)}%"></div></div>
         </div>`).join("")}
-      ${otherP >= 0.005 ? `
+      ${showOther ? `
       <div class="mix-row other">
-        <div class="mix-head"><span>その他</span><span>${pct(otherP)}%</span></div>
-        <div class="bar"><div style="width:${pct(otherP)}%"></div></div>
+        <div class="mix-head"><span>その他</span><span>${otherPct}%</span></div>
+        <div class="bar"><div style="width:${otherPct}%"></div></div>
       </div>` : ""}
       <p class="summary">${leadText}${restText}</p>
       <details>
@@ -230,7 +233,12 @@ function renderResult() {
         <table>${types.map((t) => `<tr><td>${t.code}</td><td>${(t.p * 100).toFixed(1)}%</td></tr>`).join("")}</table>
       </details>
     </div>
-    ${lead.length >= 4 ? "" : renderExplain(types[0].code, types[1].code, axisRatio)}`;
+    ${lead.length >= 4 ? "" : renderExplain(
+      types[0].code,
+      // 2位が同率で複数あるときは、まとめて比べる
+      types.slice(1).filter((t) => Math.abs(t.p - types[1].p) < EPS).map((t) => t.code),
+      axisRatio
+    )}`;
 
   // ② 1タイプ表示（従来型）
   const main = top[0].code;
@@ -261,20 +269,21 @@ function renderResult() {
   show("result");
 }
 
-// 上位2タイプを比べて解説を作る
+// 1位のタイプと2位のタイプ（同率なら複数）を比べて解説を作る
 // 共通する文字＝その人の軸になっている特徴、分かれた文字＝揺れている部分
-function renderExplain(a, b, axisRatio) {
+function renderExplain(a, others, axisRatio) {
   const common = [];
   const split = [];
   AXES.forEach((axis, k) => {
     const leftR = axisRatio[axis.id];
-    if (a[k] === b[k]) {
+    const partner = others.find((b) => b[k] !== a[k]);
+    if (!partner) {
       const letter = a[k];
       const r = letter === axis.left ? leftR : 1 - leftR;
       const name = letter === axis.left ? axis.leftName : axis.rightName;
       common.push({ letter, r, name });
     } else {
-      split.push({ axis, leftR });
+      split.push({ axis, leftR, partner });
     }
   });
 
@@ -287,7 +296,7 @@ function renderExplain(a, b, axisRatio) {
       </div>
     </div>`).join("");
 
-  const splitRows = split.map(({ axis, leftR }) => {
+  const splitRows = split.map(({ axis, leftR, partner }) => {
     const l = pct(leftR);
     return `
     <div class="blend">
@@ -296,20 +305,23 @@ function renderExplain(a, b, axisRatio) {
         <span class="c-right">${100 - l}% ${axis.rightName}（${axis.right}）</span>
       </div>
       <div class="axis-bar"><div class="l" style="width:${l}%"></div><div class="r" style="width:${100 - l}%"></div></div>
-      <p>${BLEND[axis.id].text}場面によって、${a}らしさが出ることも、${b}らしさが出ることもあるタイプです。</p>
+      <p>${BLEND[axis.id].text}場面によって、${a}らしさが出ることも、${partner}らしさが出ることもあるタイプです。</p>
     </div>`;
   }).join("");
 
   const splitTitle = split.map(({ axis }) => BLEND[axis.id].label).join("と");
+  const splitLead = split.length === 1
+    ? `一方で、${splitTitle}は <span class="c-left">${a}</span> と <span class="c-right">${split[0].partner}</span> の間で揺れています。`
+    : `一方で、${splitTitle}は、どちらも揺れています。`;
 
   return `
     <div class="card explain">
-      <div class="explain-head"><span class="badge">解説</span><span>${a} と ${b} から見たあなた</span></div>
+      <div class="explain-head"><span class="badge">解説</span><span>${a} と ${others.join("・")} から見たあなた</span></div>
       ${common.length ? `
-      <p class="explain-lead">あなたの中心にあるのは、2つのタイプに共通する <span class="c-left">${common.map((c) => c.letter).join("・")}</span> の特徴です。</p>
+      <p class="explain-lead">あなたの中心にあるのは、${others.length + 1}つのタイプに共通する <span class="c-left">${common.map((c) => c.letter).join("・")}</span> の特徴です。</p>
       ${commonRows}` : ""}
       ${split.length ? `
-      <p class="explain-lead">一方で、${splitTitle}は <span class="c-left">${a}</span> と <span class="c-right">${b}</span> の間で揺れています。</p>
+      <p class="explain-lead">${splitLead}</p>
       ${splitRows}` : ""}
       <p class="explain-note">※ この解説は、あなたの回答から計算した数値をもとに作成しています。</p>
     </div>`;
