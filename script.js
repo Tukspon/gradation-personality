@@ -48,6 +48,34 @@ const TRAITS = {
   J: "計画を立てて、決めた通りに進めやすい",
 };
 
+// 解説用：各文字の傾向（後ろに「かなり強い」などの程度がつく）
+const TENDENCY = {
+  I: "一人の時間でエネルギーを回復する傾向が",
+  E: "人との関わりからエネルギーを得る傾向が",
+  N: "物事の意味や将来の可能性に目を向ける傾向が",
+  S: "具体的な事実や経験を大切にする傾向が",
+  T: "筋道や論理を重視して判断する傾向が",
+  F: "人の気持ちを重視して判断する傾向が",
+  P: "予定より、その場の流れに合わせて動く傾向が",
+  J: "計画を立てて、決めた通りに進める傾向が",
+};
+
+// 解説用：上位タイプで分かれた指標の説明
+const BLEND = {
+  IE: { label: "エネルギーの向き", text: "一人で過ごす時間も、人と過ごす時間も、同じくらい大切にします。" },
+  NS: { label: "ものの見方", text: "目の前の事実と、その先の可能性の両方に目を向けます。" },
+  TF: { label: "判断の仕方", text: "筋道を大事にしながらも、相手の気持ちも同じくらい気にかけます。" },
+  PJ: { label: "物事の進め方", text: "計画を立てることも、その場で柔軟に動くことも、どちらもできます。" },
+};
+
+// 割合（0.5〜1）から程度の言葉を決める
+function degree(r) {
+  if (r >= 0.85) return "かなり強い";
+  if (r >= 0.7) return "強い";
+  if (r >= 0.6) return "やや強い";
+  return "少しある";
+}
+
 const SCALE_LABELS = ["全くそう思わない", "あまりそう思わない", "どちらでもない", "ややそう思う", "とてもそう思う"];
 
 // ===== 計算 =====
@@ -169,7 +197,8 @@ function renderResult() {
         <summary>16タイプすべての割合を見る</summary>
         <table>${types.map((t) => `<tr><td>${t.code}</td><td>${(t.p * 100).toFixed(1)}%</td></tr>`).join("")}</table>
       </details>
-    </div>`;
+    </div>
+    ${lead.length >= 4 ? "" : renderExplain(types[0].code, types[1].code, axisRatio)}`;
 
   // ② 1タイプ表示（従来型）
   const main = top[0].code;
@@ -198,6 +227,60 @@ function renderResult() {
 
   setView("mix");
   show("result");
+}
+
+// 上位2タイプを比べて解説を作る
+// 共通する文字＝その人の軸になっている特徴、分かれた文字＝揺れている部分
+function renderExplain(a, b, axisRatio) {
+  const common = [];
+  const split = [];
+  AXES.forEach((axis, k) => {
+    const leftR = axisRatio[axis.id];
+    if (a[k] === b[k]) {
+      const letter = a[k];
+      const r = letter === axis.left ? leftR : 1 - leftR;
+      const name = letter === axis.left ? axis.leftName : axis.rightName;
+      common.push({ letter, r, name });
+    } else {
+      split.push({ axis, leftR });
+    }
+  });
+
+  const commonRows = common.map((c) => `
+    <div class="trait">
+      <span class="letter">${c.letter}</span>
+      <div>
+        <p>${TENDENCY[c.letter]}<b>${degree(c.r)}</b></p>
+        <p class="trait-num">${c.name} ${pct(c.r)}%</p>
+      </div>
+    </div>`).join("");
+
+  const splitRows = split.map(({ axis, leftR }) => {
+    const l = pct(leftR);
+    return `
+    <div class="blend">
+      <div class="blend-labels">
+        <span class="c-left">${axis.leftName}（${axis.left}）${l}%</span>
+        <span class="c-right">${100 - l}% ${axis.rightName}（${axis.right}）</span>
+      </div>
+      <div class="axis-bar"><div class="l" style="width:${l}%"></div><div class="r" style="width:${100 - l}%"></div></div>
+      <p>${BLEND[axis.id].text}場面によって、${a}らしさが出ることも、${b}らしさが出ることもあるタイプです。</p>
+    </div>`;
+  }).join("");
+
+  const splitTitle = split.map(({ axis }) => BLEND[axis.id].label).join("と");
+
+  return `
+    <div class="card explain">
+      <div class="explain-head"><span class="badge">解説</span><span>${a} と ${b} から見たあなた</span></div>
+      ${common.length ? `
+      <p class="explain-lead">あなたの中心にあるのは、2つのタイプに共通する <span class="c-left">${common.map((c) => c.letter).join("・")}</span> の特徴です。</p>
+      ${commonRows}` : ""}
+      ${split.length ? `
+      <p class="explain-lead">一方で、${splitTitle}は <span class="c-left">${a}</span> と <span class="c-right">${b}</span> の間で揺れています。</p>
+      ${splitRows}` : ""}
+      <p class="explain-note">※ この解説は、あなたの回答から計算した数値をもとに作成しています。</p>
+    </div>`;
 }
 
 function setView(name) {
